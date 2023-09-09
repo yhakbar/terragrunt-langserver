@@ -2,6 +2,7 @@ package langserver
 
 import (
 	"context"
+	"github.com/alecthomas/repr"
 	"github.com/mightyguava/terraform-langserver/lsp/protocol"
 )
 
@@ -55,12 +56,53 @@ func (s *Server) Exit(ctx context.Context) error {
 }
 
 func (s *Server) Initialize(ctx context.Context, initialize *protocol.ParamInitialize) (*protocol.InitializeResult, error) {
-	return &protocol.InitializeResult{ServerInfo: &protocol.PServerInfoMsg_initialize{Name: "hello"}}, nil
+	return &protocol.InitializeResult{
+		ServerInfo: &protocol.PServerInfoMsg_initialize{Name: "hello"},
+		Capabilities: protocol.ServerCapabilities{
+			HoverProvider: &protocol.Or_ServerCapabilities_hoverProvider{
+				Value: true,
+			},
+			CallHierarchyProvider:            nil,
+			CodeActionProvider:               nil,
+			CodeLensProvider:                 nil,
+			ColorProvider:                    nil,
+			CompletionProvider:               nil,
+			DeclarationProvider:              nil,
+			DefinitionProvider:               nil,
+			DiagnosticProvider:               nil,
+			DocumentFormattingProvider:       nil,
+			DocumentHighlightProvider:        nil,
+			DocumentLinkProvider:             nil,
+			DocumentOnTypeFormattingProvider: nil,
+			DocumentRangeFormattingProvider:  nil,
+			DocumentSymbolProvider:           nil,
+			ExecuteCommandProvider:           nil,
+			Experimental:                     nil,
+			FoldingRangeProvider:             nil,
+			ImplementationProvider:           nil,
+			InlayHintProvider:                nil,
+			InlineCompletionProvider:         nil,
+			InlineValueProvider:              nil,
+			LinkedEditingRangeProvider:       nil,
+			MonikerProvider:                  nil,
+			NotebookDocumentSync:             nil,
+			PositionEncoding:                 nil,
+			ReferencesProvider:               nil,
+			RenameProvider:                   nil,
+			SelectionRangeProvider:           nil,
+			SemanticTokensProvider:           nil,
+			SignatureHelpProvider:            nil,
+			TextDocumentSync:                 nil,
+			TypeDefinitionProvider:           nil,
+			TypeHierarchyProvider:            nil,
+			Workspace:                        nil,
+			WorkspaceSymbolProvider:          nil,
+		},
+	}, nil
 }
 
 func (s *Server) Initialized(ctx context.Context, params *protocol.InitializedParams) error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (s *Server) Resolve(ctx context.Context, hint *protocol.InlayHint) (*protocol.InlayHint, error) {
@@ -179,8 +221,8 @@ func (s *Server) Formatting(ctx context.Context, params *protocol.DocumentFormat
 }
 
 func (s *Server) Hover(ctx context.Context, params *protocol.HoverParams) (*protocol.Hover, error) {
-	//TODO implement me
-	panic("implement me")
+	repr.Println(params)
+	return nil, nil
 }
 
 func (s *Server) Implementation(ctx context.Context, params *protocol.ImplementationParams) ([]protocol.Location, error) {
