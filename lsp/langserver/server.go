@@ -2,11 +2,12 @@ package langserver
 
 import (
 	"context"
-	"github.com/alecthomas/repr"
 	"github.com/mightyguava/terraform-langserver/lsp/protocol"
 )
 
-type Server struct{}
+type Server struct {
+	HoverHandler *HoverHandler
+}
 
 var _ protocol.Server = &Server{}
 
@@ -221,8 +222,7 @@ func (s *Server) Formatting(ctx context.Context, params *protocol.DocumentFormat
 }
 
 func (s *Server) Hover(ctx context.Context, params *protocol.HoverParams) (*protocol.Hover, error) {
-	repr.Println(params)
-	return nil, nil
+	return s.HoverHandler.Handle(ctx, params)
 }
 
 func (s *Server) Implementation(ctx context.Context, params *protocol.ImplementationParams) ([]protocol.Location, error) {

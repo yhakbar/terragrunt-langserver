@@ -45,7 +45,9 @@ func main() {
 	flag.Parse()
 	// -------------------------------------------------------------------------
 	// Set up a service with some trivial methods (handlers defined below).
-	svc := &langserver.Server{}
+	svc := &langserver.Server{
+		HoverHandler: &langserver.HoverHandler{},
+	}
 	assigner := protocol.SingleAssigner(protocol.JRPCHandler(svc))
 
 	serverOpts := &jrpc2.ServerOptions{
