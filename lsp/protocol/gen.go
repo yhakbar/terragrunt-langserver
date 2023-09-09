@@ -18,17 +18,17 @@ func (r *replyAdapter) reply(ctx context.Context, result interface{}, err error)
 
 type Replier func(ctx context.Context, result interface{}, err error) error
 
-type JRPCAssigner struct {
-	Server
+// SingleAssigner is a jrpc2.Assigner that always assigns to a single static jrpc2.Handler.
+type SingleAssigner jrpc2.Handler
+
+var _ jrpc2.Assigner = SingleAssigner(jrpc2.Handler(nil))
+
+func (s SingleAssigner) Assign(ctx context.Context, method string) jrpc2.Handler {
+	return s
 }
 
-var _ jrpc2.Assigner = &JRPCAssigner{}
-
-func (a *JRPCAssigner) Assign(ctx context.Context, method string) jrpc2.Handler {
-	return JRPCHandler(a.Server)
-}
-
-func JRPCHandler(server Server) func(context.Context, *jrpc2.Request) (any, error) {
+// JRPCHandler adapts the generated protocol code to a jrpc2.Handler
+func JRPCHandler(server Server) jrpc2.Handler {
 	return func(ctx context.Context, request *jrpc2.Request) (any, error) {
 		replier := &replyAdapter{}
 		isMatched, err := serverDispatch(ctx, server, replier.reply, request)
