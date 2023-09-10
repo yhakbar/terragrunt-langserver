@@ -1,4 +1,4 @@
-module github.com/mightyguava/terraform-langserver
+module github.com/mightyguava/hcl-langserver
 
 go 1.19
 

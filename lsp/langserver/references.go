@@ -3,9 +3,9 @@ package langserver
 import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/mightyguava/terraform-langserver/lang/terragrunt"
-	"github.com/mightyguava/terraform-langserver/lsp/document"
-	"github.com/mightyguava/terraform-langserver/lsp/protocol"
+	"github.com/mightyguava/hcl-langserver/lang/terragrunt"
+	"github.com/mightyguava/hcl-langserver/lsp/document"
+	"github.com/mightyguava/hcl-langserver/lsp/protocol"
 	"log/slog"
 	"reflect"
 )

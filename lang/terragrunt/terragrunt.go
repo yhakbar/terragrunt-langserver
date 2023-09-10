@@ -11,7 +11,6 @@ import (
 )
 
 func ParseHCL(fileName string, contents []byte) (file *hcl.File, err error) {
-
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			err = errors.Errorf("panic while parsing %s: %+v", fileName, recovered)

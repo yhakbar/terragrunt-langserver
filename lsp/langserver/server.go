@@ -2,8 +2,8 @@ package langserver
 
 import (
 	"context"
-	"github.com/mightyguava/terraform-langserver/lsp/document"
-	"github.com/mightyguava/terraform-langserver/lsp/protocol"
+	"github.com/mightyguava/hcl-langserver/lsp/document"
+	"github.com/mightyguava/hcl-langserver/lsp/protocol"
 )
 
 type Server struct {
