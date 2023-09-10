@@ -22,6 +22,7 @@ func TestParseHCL(t *testing.T) {
 	ast, err := ParseHCL("account.hcl", contents)
 	require.NoError(t, err)
 
-	idx := IndexAST(ast)
-	repr.Println(idx)
+	repr.Println(ast)
+	//idx := IndexAST(ast)
+	//repr.Println(idx)
 }

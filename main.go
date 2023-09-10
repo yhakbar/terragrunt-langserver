@@ -6,6 +6,7 @@ import (
 	"github.com/creachadair/jrpc2"
 	"github.com/creachadair/jrpc2/channel"
 	"github.com/creachadair/jrpc2/server"
+	"github.com/mightyguava/terraform-langserver/lsp/document"
 	"github.com/mightyguava/terraform-langserver/lsp/langserver"
 	"github.com/mightyguava/terraform-langserver/lsp/protocol"
 	"log"
@@ -42,11 +43,23 @@ func (r RequestLogger) LogResponse(ctx context.Context, rsp *jrpc2.Response) {
 
 func main() {
 	port := flag.String("socket", "", "port to listen on")
+	logLevel := flag.String("log-level", "debug", "log level")
 	flag.Parse()
+	var level slog.Level
+	if err := level.UnmarshalText([]byte(*logLevel)); err != nil {
+		log.Fatalf("invalid level %s", *logLevel)
+	}
+	log.SetFlags(log.Lshortfile)
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: level,
+	})))
 	// -------------------------------------------------------------------------
 	// Set up a service with some trivial methods (handlers defined below).
+	workspace := document.NewWorkspace()
 	svc := &langserver.Server{
-		HoverHandler: &langserver.HoverHandler{},
+		HoverHandler: langserver.NewHoverHandler(workspace),
+		Workspace:    workspace,
+		Referencer:   langserver.NewReferencer(workspace),
 	}
 	assigner := protocol.SingleAssigner(protocol.JRPCHandler(svc))
 

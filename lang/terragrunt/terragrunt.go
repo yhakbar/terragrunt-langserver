@@ -37,16 +37,41 @@ func (n *IndexedNode) GoString() string {
 	return fmt.Sprintf("[%d:%d-%d:%d] %s", r.Start.Line, r.Start.Column, r.End.Line, r.End.Column, reflect.TypeOf(n.Node))
 }
 
+func (n *IndexedNode) String() string {
+	return n.GoString()
+}
+
+type Document struct {
+	Index  NodeIndex
+	Locals map[string]*IndexedNode
+}
+
+func (d *Document) FindNodeAt(pos hcl.Pos) *IndexedNode {
+	nodes, ok := d.Index[pos.Line]
+	if !ok {
+		return nil
+	}
+	var closest *IndexedNode
+	for _, node := range nodes {
+		if node.SrcRange.Start.Column < pos.Column {
+			closest = node
+		}
+	}
+	return closest
+}
+
 type NodeIndex map[int][]*IndexedNode
 
 type nodeIndexBuilder struct {
-	stack []*IndexedNode
-	index NodeIndex
+	stack  []*IndexedNode
+	index  NodeIndex
+	locals map[string]*IndexedNode
 }
 
 func newTokenIndexBuilider() *nodeIndexBuilder {
 	return &nodeIndexBuilder{
-		index: make(map[int][]*IndexedNode),
+		index:  make(map[int][]*IndexedNode),
+		locals: make(map[string]*IndexedNode),
 	}
 }
 
@@ -63,7 +88,35 @@ func (w *nodeIndexBuilder) Enter(node hclsyntax.Node) hcl.Diagnostics {
 	}
 	w.stack = append(w.stack, inode)
 	w.index[line] = append(w.index[line], inode)
+	if IsLocalAttribute(inode) {
+		if attr, ok := node.(*hclsyntax.Attribute); ok {
+			w.locals[attr.Name] = inode
+		}
+	}
 	return nil
+}
+
+func IsLocalAttribute(node *IndexedNode) bool {
+	if node.Parent == nil || node.Parent.Parent == nil || node.Parent.Parent.Parent == nil {
+		return false
+	}
+	if _, ok := node.Parent.Node.(hclsyntax.Attributes); !ok {
+		return false
+	}
+	if _, ok := node.Parent.Parent.Node.(*hclsyntax.Body); !ok {
+		return false
+	}
+	return IsLocalBlock(node.Parent.Parent.Parent.Node)
+}
+
+func IsLocalBlock(node hclsyntax.Node) bool {
+	block, ok := node.(*hclsyntax.Block)
+	return ok && block.Type == "locals"
+}
+
+func IsAttributeNode(node hclsyntax.Node) bool {
+	_, ok := node.(*hclsyntax.Attribute)
+	return ok
 }
 
 func (w *nodeIndexBuilder) Exit(node hclsyntax.Node) hcl.Diagnostics {
@@ -73,11 +126,14 @@ func (w *nodeIndexBuilder) Exit(node hclsyntax.Node) hcl.Diagnostics {
 
 var _ hclsyntax.Walker = &nodeIndexBuilder{}
 
-func IndexAST(ast *hcl.File) NodeIndex {
+func IndexAST(ast *hcl.File) *Document {
 	body := ast.Body.(*hclsyntax.Body)
 	builder := newTokenIndexBuilider()
 	_ = hclsyntax.Walk(body, builder)
-	return builder.index
+	return &Document{
+		Index:  builder.index,
+		Locals: builder.locals,
+	}
 }
 
 func ParseHCLParticiple(fileName string, contents []byte) (*phcl.AST, error) {

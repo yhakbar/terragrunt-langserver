@@ -2,14 +2,86 @@ package langserver
 
 import (
 	"context"
+	"github.com/mightyguava/terraform-langserver/lsp/document"
 	"github.com/mightyguava/terraform-langserver/lsp/protocol"
 )
 
 type Server struct {
 	HoverHandler *HoverHandler
+	Workspace    *document.Workspace
+	Referencer   *Referencer
 }
 
 var _ protocol.Server = &Server{}
+
+func (s *Server) Initialize(ctx context.Context, initialize *protocol.ParamInitialize) (*protocol.InitializeResult, error) {
+	return &protocol.InitializeResult{
+		ServerInfo: &protocol.PServerInfoMsg_initialize{Name: "hello"},
+		Capabilities: protocol.ServerCapabilities{
+			HoverProvider: &protocol.Or_ServerCapabilities_hoverProvider{
+				Value: true,
+			},
+			CallHierarchyProvider: nil,
+			CodeActionProvider:    nil,
+			CodeLensProvider:      nil,
+			ColorProvider:         nil,
+			CompletionProvider:    nil,
+			DeclarationProvider: //&protocol.Or_ServerCapabilities_declarationProvider{Value: true},
+			&protocol.Or_ServerCapabilities_declarationProvider{
+				Value: protocol.DeclarationRegistrationOptions{
+					DeclarationOptions: protocol.DeclarationOptions{},
+					TextDocumentRegistrationOptions: protocol.TextDocumentRegistrationOptions{
+						DocumentSelector: protocol.DocumentSelector{
+							protocol.DocumentFilter{Value: protocol.TextDocumentFilter{
+								Language: "hcl",
+							}},
+						},
+					},
+					StaticRegistrationOptions: protocol.StaticRegistrationOptions{},
+				},
+			},
+			DefinitionProvider:               nil,
+			DiagnosticProvider:               nil,
+			DocumentFormattingProvider:       nil,
+			DocumentHighlightProvider:        nil,
+			DocumentLinkProvider:             nil,
+			DocumentOnTypeFormattingProvider: nil,
+			DocumentRangeFormattingProvider:  nil,
+			DocumentSymbolProvider:           nil,
+			ExecuteCommandProvider:           nil,
+			Experimental:                     nil,
+			FoldingRangeProvider:             nil,
+			ImplementationProvider:           nil,
+			InlayHintProvider:                nil,
+			InlineCompletionProvider:         nil,
+			InlineValueProvider:              nil,
+			LinkedEditingRangeProvider:       nil,
+			MonikerProvider:                  nil,
+			NotebookDocumentSync:             nil,
+			PositionEncoding:                 nil,
+			ReferencesProvider:               nil,
+			RenameProvider:                   nil,
+			SelectionRangeProvider:           nil,
+			SemanticTokensProvider:           nil,
+			SignatureHelpProvider:            nil,
+			TextDocumentSync: &protocol.TextDocumentSyncOptions{
+				OpenClose:         true,
+				Change:            protocol.None,
+				WillSave:          false,
+				WillSaveWaitUntil: false,
+				Save:              &protocol.SaveOptions{},
+			},
+			TypeDefinitionProvider:  nil,
+			TypeHierarchyProvider:   nil,
+			Workspace:               nil,
+			WorkspaceSymbolProvider: nil,
+		},
+	}, nil
+}
+
+func (s *Server) Initialized(ctx context.Context, params *protocol.InitializedParams) error {
+	return nil
+}
 
 func (s *Server) Progress(ctx context.Context, params *protocol.ProgressParams) error {
 	//TODO implement me
@@ -54,56 +126,6 @@ func (s *Server) ResolveDocumentLink(ctx context.Context, link *protocol.Documen
 func (s *Server) Exit(ctx context.Context) error {
 	//TODO implement me
 	panic("implement me")
-}
-
-func (s *Server) Initialize(ctx context.Context, initialize *protocol.ParamInitialize) (*protocol.InitializeResult, error) {
-	return &protocol.InitializeResult{
-		ServerInfo: &protocol.PServerInfoMsg_initialize{Name: "hello"},
-		Capabilities: protocol.ServerCapabilities{
-			HoverProvider: &protocol.Or_ServerCapabilities_hoverProvider{
-				Value: true,
-			},
-			CallHierarchyProvider:            nil,
-			CodeActionProvider:               nil,
-			CodeLensProvider:                 nil,
-			ColorProvider:                    nil,
-			CompletionProvider:               nil,
-			DeclarationProvider:              nil,
-			DefinitionProvider:               nil,
-			DiagnosticProvider:               nil,
-			DocumentFormattingProvider:       nil,
-			DocumentHighlightProvider:        nil,
-			DocumentLinkProvider:             nil,
-			DocumentOnTypeFormattingProvider: nil,
-			DocumentRangeFormattingProvider:  nil,
-			DocumentSymbolProvider:           nil,
-			ExecuteCommandProvider:           nil,
-			Experimental:                     nil,
-			FoldingRangeProvider:             nil,
-			ImplementationProvider:           nil,
-			InlayHintProvider:                nil,
-			InlineCompletionProvider:         nil,
-			InlineValueProvider:              nil,
-			LinkedEditingRangeProvider:       nil,
-			MonikerProvider:                  nil,
-			NotebookDocumentSync:             nil,
-			PositionEncoding:                 nil,
-			ReferencesProvider:               nil,
-			RenameProvider:                   nil,
-			SelectionRangeProvider:           nil,
-			SemanticTokensProvider:           nil,
-			SignatureHelpProvider:            nil,
-			TextDocumentSync:                 nil,
-			TypeDefinitionProvider:           nil,
-			TypeHierarchyProvider:            nil,
-			Workspace:                        nil,
-			WorkspaceSymbolProvider:          nil,
-		},
-	}, nil
-}
-
-func (s *Server) Initialized(ctx context.Context, params *protocol.InitializedParams) error {
-	return nil
 }
 
 func (s *Server) Resolve(ctx context.Context, hint *protocol.InlayHint) (*protocol.InlayHint, error) {
@@ -157,8 +179,11 @@ func (s *Server) Completion(ctx context.Context, params *protocol.CompletionPara
 }
 
 func (s *Server) Declaration(ctx context.Context, params *protocol.DeclarationParams) (*protocol.Or_textDocument_declaration, error) {
-	//TODO implement me
-	panic("implement me")
+	result, err := s.Referencer.GoToDeclaration(params)
+	if err != nil {
+		return nil, err
+	}
+	return &protocol.Or_textDocument_declaration{Value: result}, nil
 }
 
 func (s *Server) Definition(ctx context.Context, params *protocol.DefinitionParams) ([]protocol.Location, error) {
@@ -173,17 +198,17 @@ func (s *Server) Diagnostic(ctx context.Context, s2 *string) (*string, error) {
 
 func (s *Server) DidChange(ctx context.Context, params *protocol.DidChangeTextDocumentParams) error {
 	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (s *Server) DidClose(ctx context.Context, params *protocol.DidCloseTextDocumentParams) error {
-	//TODO implement me
-	panic("implement me")
+	s.Workspace.UnloadFile(string(params.TextDocument.URI))
+	return nil
 }
 
 func (s *Server) DidOpen(ctx context.Context, params *protocol.DidOpenTextDocumentParams) error {
-	//TODO implement me
-	panic("implement me")
+	_, err := s.Workspace.LoadFileContents(string(params.TextDocument.URI), []byte(params.TextDocument.Text))
+	return err
 }
 
 func (s *Server) DidSave(ctx context.Context, params *protocol.DidSaveTextDocumentParams) error {
