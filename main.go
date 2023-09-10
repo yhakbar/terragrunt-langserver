@@ -44,6 +44,7 @@ func (r RequestLogger) LogResponse(ctx context.Context, rsp *jrpc2.Response) {
 func main() {
 	port := flag.String("socket", "", "port to listen on")
 	logLevel := flag.String("log-level", "debug", "log level")
+	logRequests := flag.Bool("log-requests", false, "set to log request payloads")
 	flag.Parse()
 	var level slog.Level
 	if err := level.UnmarshalText([]byte(*logLevel)); err != nil {
@@ -63,10 +64,14 @@ func main() {
 	}
 	assigner := protocol.SingleAssigner(protocol.JRPCHandler(svc))
 
+	var requestLogger jrpc2.RPCLogger
+	if *logRequests {
+		requestLogger = &RequestLogger{}
+	}
 	serverOpts := &jrpc2.ServerOptions{
 		AllowPush: true,
-		Logger:    func(text string) { slog.Debug(text) },
-		RPCLog:    &RequestLogger{},
+		Logger:    func(text string) { slog.Log(nil, slog.Level(-5), text) },
+		RPCLog:    requestLogger,
 	}
 	if *port == "" {
 		slog.Info("Starting server as stdio")
