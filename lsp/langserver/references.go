@@ -18,43 +18,43 @@ func NewReferencer(w *document.Workspace) *Referencer {
 	return &Referencer{w}
 }
 
-func (r *Referencer) GoToDeclaration(params *protocol.DeclarationParams) (protocol.Declaration, error) {
-	doc, err := r.w.LoadFile(string(params.TextDocument.URI))
+func (r *Referencer) GoToDefinition(params protocol.TextDocumentPositionParams) (protocol.Declaration, error) {
+	doc, err := r.w.LoadDocument(string(params.TextDocument.URI), true)
 	if err != nil {
 		return nil, err
 	}
 	pos := document.ToHclPos(params.Position)
-	node := doc.FindNodeAt(pos)
+	node := doc.AST.FindNodeAt(pos)
 	if node == nil {
 		return nil, nil
 	}
 	slog.Info("Found node", slog.Any("node", node))
 	scopeTraversalNode, ok := node.Node.(*hclsyntax.ScopeTraversalExpr)
 	if !ok {
-		slog.Info("Not scope traversal, was %s", node.GoString())
+		slog.Info("Not scope traversal", "node", node.GoString())
 		return nil, nil
 	}
-	slog.Info("Locals", "v", doc.Locals)
+	slog.Info("Locals", "v", doc.AST.RootScopes["local"])
 	traversal := scopeTraversalNode.Traversal
-	var root map[string]*terragrunt.IndexedNode
+	var scope terragrunt.Scope
 	for _, t := range traversal {
 		slog.Info("Traversing", "type", reflect.TypeOf(t).String())
 		switch tv := t.(type) {
 		case hcl.TraverseRoot:
 			rootName := t.(hcl.TraverseRoot).Name
 			if rootName == "local" {
-				root = doc.Locals
+				scope = doc.AST.RootScopes["local"]
 			} else {
-				slog.Info("root name not supported", slog.String("root", rootName))
+				slog.Info("scope name not supported", slog.String("scope", rootName))
 				return nil, nil
 			}
 		case hcl.TraverseAttr:
-			declaration, ok := root[tv.Name]
+			declaration, ok := scope[tv.Name]
 			if ok {
-				return protocol.Declaration{
+				return []protocol.Location{
 					{
 						URI:   params.TextDocument.URI,
-						Range: document.FromHCLRange(declaration.SrcRange),
+						Range: document.FromHCLRange(declaration.Range()),
 					},
 				}, nil
 			}

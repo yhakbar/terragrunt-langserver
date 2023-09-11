@@ -8,7 +8,7 @@
       "name": "Launch Extension",
       "runtimeExecutable": "${execPath}",
       "args": [
-        "${userHome}/Projects/terragrunt-infrastructure-live-example",
+        "${workspaceRoot}/../lang/testdata/terragrunt-example",
         "--extensionDevelopmentPath=${workspaceRoot}"
       ],
       "outFiles": ["${workspaceRoot}/out/**/*.js"],

@@ -1760,7 +1760,7 @@ type FoldingRangeRegistrationOptions struct { // line 2547
 	StaticRegistrationOptions
 }
 
-// Node-object describing what options formatting should use.
+// Value-object describing what options formatting should use.
 type FormattingOptions struct { // line 9487
 	// Size of a tab in spaces.
 	TabSize uint32 `json:"tabSize"`
@@ -3541,7 +3541,7 @@ type ReferenceClientCapabilities struct { // line 11974
 	DynamicRegistration bool `json:"dynamicRegistration,omitempty"`
 }
 
-// Node-object that contains additional information when
+// Value-object that contains additional information when
 // requesting references.
 type ReferenceContext struct { // line 9248
 	// Include the declaration of the current symbol.

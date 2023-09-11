@@ -2,6 +2,7 @@ package langserver
 
 import (
 	"context"
+	"github.com/creachadair/jrpc2"
 	"github.com/mightyguava/hcl-langserver/lsp/document"
 	"github.com/mightyguava/hcl-langserver/lsp/protocol"
 )
@@ -10,37 +11,31 @@ type Server struct {
 	HoverHandler *HoverHandler
 	Workspace    *document.Workspace
 	Referencer   *Referencer
+	client       protocol.Client
+}
+
+type ClientCaller interface {
+	Callback(ctx context.Context, method string, params any) (*jrpc2.Response, error)
+	Notify(ctx context.Context, method string, params any) error
 }
 
 var _ protocol.Server = &Server{}
 
 func (s *Server) Initialize(ctx context.Context, initialize *protocol.ParamInitialize) (*protocol.InitializeResult, error) {
+	s.client = protocol.ClientCaller(protocol.NewSender(jrpc2.ServerFromContext(ctx)))
 	return &protocol.InitializeResult{
 		ServerInfo: &protocol.PServerInfoMsg_initialize{Name: "hello"},
 		Capabilities: protocol.ServerCapabilities{
 			HoverProvider: &protocol.Or_ServerCapabilities_hoverProvider{
 				Value: true,
 			},
-			CallHierarchyProvider: nil,
-			CodeActionProvider:    nil,
-			CodeLensProvider:      nil,
-			ColorProvider:         nil,
-			CompletionProvider:    nil,
-			DeclarationProvider: //&protocol.Or_ServerCapabilities_declarationProvider{Value: true},
-			&protocol.Or_ServerCapabilities_declarationProvider{
-				Value: protocol.DeclarationRegistrationOptions{
-					DeclarationOptions: protocol.DeclarationOptions{},
-					TextDocumentRegistrationOptions: protocol.TextDocumentRegistrationOptions{
-						DocumentSelector: protocol.DocumentSelector{
-							protocol.DocumentFilter{Value: protocol.TextDocumentFilter{
-								Language: "hcl",
-							}},
-						},
-					},
-					StaticRegistrationOptions: protocol.StaticRegistrationOptions{},
-				},
-			},
-			DefinitionProvider:               nil,
+			CallHierarchyProvider:            nil,
+			CodeActionProvider:               nil,
+			CodeLensProvider:                 nil,
+			ColorProvider:                    nil,
+			CompletionProvider:               nil,
+			DeclarationProvider:              &protocol.Or_ServerCapabilities_declarationProvider{Value: true},
+			DefinitionProvider:               &protocol.Or_ServerCapabilities_definitionProvider{Value: true},
 			DiagnosticProvider:               nil,
 			DocumentFormattingProvider:       nil,
 			DocumentHighlightProvider:        nil,
@@ -179,7 +174,7 @@ func (s *Server) Completion(ctx context.Context, params *protocol.CompletionPara
 }
 
 func (s *Server) Declaration(ctx context.Context, params *protocol.DeclarationParams) (*protocol.Or_textDocument_declaration, error) {
-	result, err := s.Referencer.GoToDeclaration(params)
+	result, err := s.Referencer.GoToDefinition(params.TextDocumentPositionParams)
 	if err != nil {
 		return nil, err
 	}
@@ -187,8 +182,11 @@ func (s *Server) Declaration(ctx context.Context, params *protocol.DeclarationPa
 }
 
 func (s *Server) Definition(ctx context.Context, params *protocol.DefinitionParams) ([]protocol.Location, error) {
-	//TODO implement me
-	panic("implement me")
+	result, err := s.Referencer.GoToDefinition(params.TextDocumentPositionParams)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (s *Server) Diagnostic(ctx context.Context, s2 *string) (*string, error) {
@@ -207,13 +205,28 @@ func (s *Server) DidClose(ctx context.Context, params *protocol.DidCloseTextDocu
 }
 
 func (s *Server) DidOpen(ctx context.Context, params *protocol.DidOpenTextDocumentParams) error {
-	_, err := s.Workspace.LoadFileContents(string(params.TextDocument.URI), []byte(params.TextDocument.Text))
+	doc, err := s.Workspace.LoadDocumentBytes(string(params.TextDocument.URI), []byte(params.TextDocument.Text))
+	if err != nil {
+		return err
+	}
+	_ = s.client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
+		URI:         params.TextDocument.URI,
+		Version:     params.TextDocument.Version,
+		Diagnostics: document.FromHCLDiagnostics(doc.Diagnostics),
+	})
 	return err
 }
 
 func (s *Server) DidSave(ctx context.Context, params *protocol.DidSaveTextDocumentParams) error {
-	//TODO implement me
-	panic("implement me")
+	doc, err := s.Workspace.LoadDocument(string(params.TextDocument.URI), false)
+	if err != nil {
+		return err
+	}
+	_ = s.client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
+		URI:         params.TextDocument.URI,
+		Diagnostics: document.FromHCLDiagnostics(doc.Diagnostics),
+	})
+	return err
 }
 
 func (s *Server) DocumentColor(ctx context.Context, params *protocol.DocumentColorParams) ([]protocol.ColorInformation, error) {

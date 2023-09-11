@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -23,7 +21,7 @@ func main() {
 
 	source := fmt.Sprintf("https://raw.githubusercontent.com/golang/tools/gopls/%%2F%s/gopls/internal/lsp/protocol/", *goPlsVersion)
 
-	files := []string{"tsjson.go", "tsdocument_changes.go", "tsprotocol.go", "tsserver.go"}
+	files := []string{"tsjson.go", "tsdocument_changes.go", "tsprotocol.go", "tsclient.go", "tsserver.go"}
 	for _, f := range files {
 		remote := source + f
 		log.Printf("Downloading %s", remote)
@@ -35,8 +33,8 @@ func main() {
 			panic(fmt.Sprintf("Got %d", resp.StatusCode))
 		}
 		data, err := io.ReadAll(resp.Body)
-		if f == "tsserver.go" {
-			data = transformServer(data)
+		if f == "tsserver.go" || f == "tsclient.go" {
+			data = transformJrpc(data)
 		}
 		if err != nil {
 			panic(err)
@@ -47,19 +45,8 @@ func main() {
 	}
 }
 
-func transformServer(data []byte) []byte {
-	scanner := bufio.NewScanner(bytes.NewReader(data))
-	sb := &strings.Builder{}
-	sb.Grow(len(data))
-	for scanner.Scan() {
-		if strings.Contains(scanner.Text(), "serverDispatcher") {
-			break
-		}
-		sb.WriteString(scanner.Text())
-		sb.WriteRune('\n')
-	}
-
-	src := sb.String()
+func transformJrpc(data []byte) []byte {
+	src := string(data)
 	type replace struct {
 		from, to string
 	}

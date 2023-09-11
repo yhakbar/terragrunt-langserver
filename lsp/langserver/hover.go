@@ -16,12 +16,12 @@ func NewHoverHandler(w *document.Workspace) *HoverHandler {
 }
 
 func (h *HoverHandler) Handle(ctx context.Context, params *protocol.HoverParams) (*protocol.Hover, error) {
-	doc, err := h.w.LoadFile(string(params.TextDocument.URI))
+	doc, err := h.w.LoadDocument(string(params.TextDocument.URI), true)
 	if err != nil {
 		return nil, err
 	}
 	hoverPos := document.ToHclPos(params.Position)
-	closest := doc.FindNodeAt(hoverPos)
+	closest := doc.AST.FindNodeAt(hoverPos)
 	if closest == nil {
 		return nil, nil
 	}
@@ -30,6 +30,6 @@ func (h *HoverHandler) Handle(ctx context.Context, params *protocol.HoverParams)
 			Kind:  protocol.PlainText,
 			Value: reflect.TypeOf(closest.Node).String(),
 		},
-		Range: document.FromHCLRange(closest.SrcRange),
+		Range: document.FromHCLRange(closest.Range()),
 	}, nil
 }
