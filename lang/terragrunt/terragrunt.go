@@ -10,14 +10,16 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"log/slog"
 	"os"
 	"reflect"
+	"runtime/debug"
 )
 
 func ParseHCLFile(fileName string, contents []byte) (file *IndexedAST, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
-			err = errors.Errorf("panic while parsing %s: %+v", fileName, recovered)
+			err = errors.Errorf("panic while parsing %s: %+v\n%s", fileName, recovered, string(debug.Stack()))
 		}
 	}()
 
@@ -50,17 +52,43 @@ type IndexedAST struct {
 }
 
 func (d *IndexedAST) FindNodeAt(pos hcl.Pos) *IndexedNode {
+	// Iterate backwards to find a node that starts before the position
 	nodes, ok := d.Index[pos.Line]
 	if !ok {
 		return nil
 	}
 	var closest *IndexedNode
+	// First try finding a matching node on the same line
 	for _, node := range nodes {
-		if node.Range().Start.Column < pos.Column {
+		if node.Range().Start.Column <= pos.Column {
 			closest = node
 		}
 	}
-	return closest
+	if closest == nil {
+		// Iterate backwards by line
+		for i := pos.Line - 1; i >= 1; i-- {
+			slog.Info("Check", "line", i)
+			nodes, ok = d.Index[i]
+			if !ok || len(nodes) == 0 {
+				continue
+			}
+			closest = nodes[len(nodes)-1]
+			break
+		}
+	}
+	if closest == nil {
+		return nil
+	}
+	// Navigate up the AST to find the first node that contains the position.
+	node := closest
+	for node != nil {
+		end := node.Range().End
+		if end.Line > pos.Line || end.Line == pos.Line && end.Column > pos.Column {
+			return node
+		}
+		node = node.Parent
+	}
+	return nil
 }
 
 type RootScopes map[string]Scope
