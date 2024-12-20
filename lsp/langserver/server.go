@@ -14,11 +14,6 @@ type Server struct {
 	client       protocol.Client
 }
 
-type ClientCaller interface {
-	Callback(ctx context.Context, method string, params any) (*jrpc2.Response, error)
-	Notify(ctx context.Context, method string, params any) error
-}
-
 var _ protocol.Server = &Server{}
 
 func (s *Server) Initialize(ctx context.Context, initialize *protocol.ParamInitialize) (*protocol.InitializeResult, error) {
@@ -84,8 +79,9 @@ func (s *Server) Progress(ctx context.Context, params *protocol.ProgressParams) 
 }
 
 func (s *Server) SetTrace(ctx context.Context, params *protocol.SetTraceParams) error {
-	//TODO implement me
-	panic("implement me")
+	// TODO actually set the trace level
+	//    https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#traceValue
+	return nil
 }
 
 func (s *Server) IncomingCalls(ctx context.Context, params *protocol.CallHierarchyIncomingCallsParams) ([]protocol.CallHierarchyIncomingCall, error) {

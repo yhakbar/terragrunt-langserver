@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"log/slog"
 	"os"
 	"reflect"
 	"runtime/debug"
@@ -67,7 +66,6 @@ func (d *IndexedAST) FindNodeAt(pos hcl.Pos) *IndexedNode {
 	if closest == nil {
 		// Iterate backwards by line
 		for i := pos.Line - 1; i >= 1; i-- {
-			slog.Info("Check", "line", i)
 			nodes, ok = d.Index[i]
 			if !ok || len(nodes) == 0 {
 				continue

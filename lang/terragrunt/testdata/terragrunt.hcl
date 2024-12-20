@@ -3,7 +3,3 @@ locals {
   region = "us-west-2"
   meaning = 42
 }
-
-#include "root" {
-#  path = find_in_parent_folders()
-#}
