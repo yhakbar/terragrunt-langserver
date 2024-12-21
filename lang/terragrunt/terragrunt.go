@@ -1,9 +1,7 @@
 package terragrunt
 
 import (
-	"bytes"
 	"fmt"
-	phcl "github.com/alecthomas/hcl"
 	"github.com/gruntwork-io/terragrunt/config"
 	"github.com/gruntwork-io/terragrunt/options"
 	"github.com/hashicorp/hcl/v2"
@@ -15,6 +13,8 @@ import (
 	"runtime/debug"
 )
 
+// ParseHCLFile parses a Terragrunt HCL file using the official hcl2 parser, then walks the AST and builds an IndexedAST
+// where nodes are indexed by their line numbers.
 func ParseHCLFile(fileName string, contents []byte) (file *IndexedAST, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -30,6 +30,7 @@ func ParseHCLFile(fileName string, contents []byte) (file *IndexedAST, err error
 	return indexAST(hclFile), nil
 }
 
+// IndexedNode wraps a hclsyntax.Node with a reference to its parent in the AST
 type IndexedNode struct {
 	Parent *IndexedNode
 	hclsyntax.Node
@@ -44,10 +45,15 @@ func (n *IndexedNode) String() string {
 	return n.GoString()
 }
 
+// IndexedAST contains an indexed version of the HCL AST
 type IndexedAST struct {
-	HCLFile    *hcl.File
-	Index      NodeIndex
-	RootScopes RootScopes
+	// The underlying HCL AST
+	HCLFile *hcl.File
+	// A map from line number to a list of nodes that start on that line
+	Index NodeIndex
+	// Locals contains the local attributes in the file, indexed by attribute key
+	Locals   Scope
+	Includes Scope
 }
 
 func (d *IndexedAST) FindNodeAt(pos hcl.Pos) *IndexedNode {
@@ -89,38 +95,33 @@ func (d *IndexedAST) FindNodeAt(pos hcl.Pos) *IndexedNode {
 	return nil
 }
 
-type RootScopes map[string]Scope
+type Scope map[string]*IndexedNode
 
-func (s RootScopes) SetNode(scope string, node *IndexedNode) {
-	rootScope, ok := s[scope]
-	if !ok {
-		rootScope = make(Scope)
-		s[scope] = rootScope
-	}
+func (s Scope) Add(node *IndexedNode) {
 	switch n := node.Node.(type) {
 	case *hclsyntax.Attribute:
-		rootScope[n.Name] = node
+		s[n.Name] = node
 	case *hclsyntax.Block:
-		rootScope[n.Labels[0]] = node
+		s[n.Labels[0]] = node
 	default:
 		panic("invalid node type " + reflect.TypeOf(node.Node).String())
 	}
 }
 
-type Scope map[string]*IndexedNode
-
 type NodeIndex map[int][]*IndexedNode
 
 type nodeIndexBuilder struct {
-	stack      []*IndexedNode
-	index      NodeIndex
-	rootScopes RootScopes
+	stack    []*IndexedNode
+	index    NodeIndex
+	locals   Scope
+	includes Scope
 }
 
 func newNodeIndexBuilider() *nodeIndexBuilder {
 	return &nodeIndexBuilder{
-		index:      make(map[int][]*IndexedNode),
-		rootScopes: make(RootScopes),
+		index:    make(map[int][]*IndexedNode),
+		locals:   make(Scope),
+		includes: make(Scope),
 	}
 }
 
@@ -137,10 +138,9 @@ func (w *nodeIndexBuilder) Enter(node hclsyntax.Node) hcl.Diagnostics {
 	w.stack = append(w.stack, inode)
 	w.index[line] = append(w.index[line], inode)
 	if IsLocalAttribute(inode) {
-		w.rootScopes.SetNode("local", inode)
-	}
-	if block, ok := node.(*hclsyntax.Block); ok && block.Type == "include" && len(block.Labels) > 0 {
-		w.rootScopes.SetNode("include", inode)
+		w.locals.Add(inode)
+	} else if block, ok := node.(*hclsyntax.Block); ok && block.Type == "include" && len(block.Labels) > 0 {
+		w.includes.Add(inode)
 	}
 	return nil
 }
@@ -150,6 +150,7 @@ func (w *nodeIndexBuilder) Exit(node hclsyntax.Node) hcl.Diagnostics {
 	return nil
 }
 
+// IsLocalAttribute returns TRUE if the node is a hclsyntax.Attribute within a locals {} block.
 func IsLocalAttribute(node *IndexedNode) bool {
 	if node.Parent == nil || node.Parent.Parent == nil || node.Parent.Parent.Parent == nil {
 		return false
@@ -163,6 +164,7 @@ func IsLocalAttribute(node *IndexedNode) bool {
 	return IsLocalBlock(node.Parent.Parent.Parent.Node)
 }
 
+// IsLocalBlock returns TRUE if the node is an HCL block of type "locals".
 func IsLocalBlock(node hclsyntax.Node) bool {
 	block, ok := node.(*hclsyntax.Block)
 	return ok && block.Type == "locals"
@@ -180,16 +182,15 @@ func indexAST(ast *hcl.File) *IndexedAST {
 	builder := newNodeIndexBuilider()
 	_ = hclsyntax.Walk(body, builder)
 	return &IndexedAST{
-		Index:      builder.index,
-		RootScopes: builder.rootScopes,
-		HCLFile:    ast,
+		Index:    builder.index,
+		Locals:   builder.locals,
+		Includes: builder.includes,
+		HCLFile:  ast,
 	}
 }
 
-func ParseHCLParticiple(fileName string, contents []byte) (*phcl.AST, error) {
-	return phcl.Parse(bytes.NewReader(contents))
-}
-
+// Evaluate the terragrunt HCL file using Terragrunt's config library. This parses all referenced files and evaluates
+// them as well in context.
 func Evaluate(filePath string, contents []byte) (*config.TerragruntConfig, error) {
 	contents, err := os.ReadFile(filePath)
 	if err != nil {

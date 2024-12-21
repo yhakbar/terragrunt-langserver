@@ -7,15 +7,19 @@ import (
 	"github.com/mightyguava/hcl-langserver/lsp/protocol"
 )
 
+// Server implements the LSP protocol's server interface.
 type Server struct {
 	HoverHandler *HoverHandler
 	Workspace    *document.Workspace
 	Referencer   *Referencer
-	client       protocol.Client
+	// client provides the server a handle to push messages to the LSP client.
+	client protocol.Client
 }
 
 var _ protocol.Server = &Server{}
 
+// Initialize implements the initialize request. It is the first request from the LSP client to the server.
+// https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#initialize
 func (s *Server) Initialize(ctx context.Context, initialize *protocol.ParamInitialize) (*protocol.InitializeResult, error) {
 	s.client = protocol.ClientCaller(protocol.NewSender(jrpc2.ServerFromContext(ctx)))
 	return &protocol.InitializeResult{

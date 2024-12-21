@@ -10,15 +10,6 @@ import (
 	"testing"
 )
 
-func TestParseHCLParticiple(t *testing.T) {
-	t.Skip()
-	contents, err := os.ReadFile("../testdata/terragrunt-example/terragrunt.hcl")
-	require.NoError(t, err)
-	ast, err := ParseHCLParticiple("account.hcl", contents)
-	require.NoError(t, err)
-	repr.Println(ast)
-}
-
 func TestParseHCL(t *testing.T) {
 	contents, err := os.ReadFile("../testdata/terragrunt-example/terragrunt.hcl")
 	require.NoError(t, err)
@@ -36,16 +27,15 @@ func TestIndexScopes(t *testing.T) {
 	doc, err := ParseHCLFile("terragrunt.hcl", contents)
 	require.NoError(t, err)
 
-	str := repr.String(doc.RootScopes, repr.Indent("  "))
-	require.Equal(t, `map[string]map[string]*terragrunt.IndexedNode{
-  "include": map[string]*terragrunt.IndexedNode{
-    "root": [10:1-12:2] *hclsyntax.Block,
-  },
-  "local": map[string]*terragrunt.IndexedNode{
-    "environment_vars": [2:3-2:79] *hclsyntax.Attribute,
-    "meaning": [7:3-7:15] *hclsyntax.Attribute,
-    "region": [3:3-3:23] *hclsyntax.Attribute,
-  },
+	str := repr.String(doc.Locals, repr.Indent("  "))
+	require.Equal(t, `map[string]*terragrunt.IndexedNode{
+  "root": [10:1-12:2] *hclsyntax.Block,
+}`, str)
+	str = repr.String(doc.Includes, repr.Indent("  "))
+	require.Equal(t, `map[string]*terragrunt.IndexedNode{
+  "environment_vars": [2:3-2:79] *hclsyntax.Attribute,
+  "meaning": [7:3-7:15] *hclsyntax.Attribute,
+  "region": [3:3-3:23] *hclsyntax.Attribute,
 }`, str,
 	)
 }

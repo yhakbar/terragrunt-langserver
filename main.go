@@ -15,32 +15,6 @@ import (
 	"os"
 )
 
-type RequestLogger struct{}
-
-var _ jrpc2.RPCLogger = &RequestLogger{}
-
-func (r RequestLogger) LogRequest(ctx context.Context, req *jrpc2.Request) {
-	slog.Debug("Request",
-		slog.String("id", req.ID()),
-		slog.String("method", req.Method()),
-		slog.String("params", req.ParamString()),
-	)
-}
-
-func (r RequestLogger) LogResponse(ctx context.Context, rsp *jrpc2.Response) {
-	if rsp.Error() != nil {
-		slog.Debug("Response",
-			slog.String("id", rsp.ID()),
-			slog.String("error", rsp.Error().Error()),
-		)
-	} else {
-		slog.Debug("Response",
-			slog.String("id", rsp.ID()),
-			slog.String("result", rsp.ResultString()),
-		)
-	}
-}
-
 func main() {
 	port := flag.String("socket", "", "port to listen on")
 	logLevel := flag.String("log-level", "debug", "log level")
@@ -66,7 +40,7 @@ func main() {
 
 	var requestLogger jrpc2.RPCLogger
 	if *logRequests {
-		requestLogger = &RequestLogger{}
+		requestLogger = &langserver.RequestLogger{}
 	}
 	serverOpts := &jrpc2.ServerOptions{
 		AllowPush: true,

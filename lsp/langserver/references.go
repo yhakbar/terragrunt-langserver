@@ -10,14 +10,18 @@ import (
 	"reflect"
 )
 
+// Referencer handles reference requests from the LSP client.
 type Referencer struct {
 	w *document.Workspace
 }
 
+// NewReferencer allocates and initializes a new Referencer for the document.Workspace.
 func NewReferencer(w *document.Workspace) *Referencer {
 	return &Referencer{w}
 }
 
+// GoToDefinition handles go to definition requests from the LSP client. For now, it only supports going to definition
+// of locals.
 func (r *Referencer) GoToDefinition(params protocol.TextDocumentPositionParams) (protocol.Declaration, error) {
 	doc, err := r.w.LoadDocument(string(params.TextDocument.URI), true)
 	if err != nil {
@@ -34,7 +38,7 @@ func (r *Referencer) GoToDefinition(params protocol.TextDocumentPositionParams) 
 		slog.Info("Not scope traversal", "node", node.GoString())
 		return nil, nil
 	}
-	slog.Info("Locals", "v", doc.AST.RootScopes["local"])
+	slog.Info("Locals", "v", doc.AST.Locals)
 	traversal := scopeTraversalNode.Traversal
 	var scope terragrunt.Scope
 	for _, t := range traversal {
@@ -43,7 +47,7 @@ func (r *Referencer) GoToDefinition(params protocol.TextDocumentPositionParams) 
 		case hcl.TraverseRoot:
 			rootName := t.(hcl.TraverseRoot).Name
 			if rootName == "local" {
-				scope = doc.AST.RootScopes["local"]
+				scope = doc.AST.Locals
 			} else {
 				slog.Info("scope name not supported", slog.String("scope", rootName))
 				return nil, nil
