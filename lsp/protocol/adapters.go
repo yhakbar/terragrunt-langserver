@@ -1,7 +1,9 @@
 package protocol
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"github.com/creachadair/jrpc2"
 )
 
@@ -87,4 +89,18 @@ type serverDispatcher struct {
 // ServerCaller returns a Server that dispatches requests from the LSP client to the LSP server
 func ServerCaller(sender Sender) Server {
 	return &serverDispatcher{sender}
+}
+
+// UnmarshalJSON unmarshals msg into the variable pointed to by
+// params. In JSONRPC, optional messages may be
+// "null", in which case it is a no-op.
+func UnmarshalJSON(msg json.RawMessage, v any) error {
+	if len(msg) == 0 || bytes.Equal(msg, []byte("null")) {
+		return nil
+	}
+	return json.Unmarshal(msg, v)
+}
+
+func recoverHandlerPanic(method string) {
+	// noop
 }

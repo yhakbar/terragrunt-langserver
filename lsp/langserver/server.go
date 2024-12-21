@@ -23,7 +23,7 @@ var _ protocol.Server = &Server{}
 func (s *Server) Initialize(ctx context.Context, initialize *protocol.ParamInitialize) (*protocol.InitializeResult, error) {
 	s.client = protocol.ClientCaller(protocol.NewSender(jrpc2.ServerFromContext(ctx)))
 	return &protocol.InitializeResult{
-		ServerInfo: &protocol.PServerInfoMsg_initialize{Name: "hello"},
+		ServerInfo: &protocol.ServerInfo{Name: "hello"},
 		Capabilities: protocol.ServerCapabilities{
 			HoverProvider: &protocol.Or_ServerCapabilities_hoverProvider{
 				Value: true,
@@ -189,7 +189,7 @@ func (s *Server) Definition(ctx context.Context, params *protocol.DefinitionPara
 	return result, nil
 }
 
-func (s *Server) Diagnostic(ctx context.Context, s2 *string) (*string, error) {
+func (s *Server) Diagnostic(ctx context.Context, params *protocol.DocumentDiagnosticParams) (*protocol.DocumentDiagnosticReport, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -303,7 +303,7 @@ func (s *Server) PrepareCallHierarchy(ctx context.Context, params *protocol.Call
 	panic("implement me")
 }
 
-func (s *Server) PrepareRename(ctx context.Context, params *protocol.PrepareRenameParams) (*protocol.PrepareRename2Gn, error) {
+func (s *Server) PrepareRename(ctx context.Context, params *protocol.PrepareRenameParams) (*protocol.PrepareRenameResult, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -454,6 +454,11 @@ func (s *Server) ResolveWorkspaceSymbol(ctx context.Context, symbol *protocol.Wo
 }
 
 func (s *Server) NonstandardRequest(ctx context.Context, method string, params interface{}) (interface{}, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *Server) TextDocumentContent(ctx context.Context, params *protocol.TextDocumentContentParams) (*string, error) {
 	//TODO implement me
 	panic("implement me")
 }
