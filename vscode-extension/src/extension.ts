@@ -18,16 +18,26 @@ import {
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
-  const goBin = context.asAbsolutePath(path.join("..", "bin", "langserver"));
-  const cwd = context.asAbsolutePath("..");
+  let goBin: string, cwd: string;
 
-  console.log(`Starting ${goBin}`);
+  const isDevelopmentMode = context.extensionMode === vscode.ExtensionMode.Development;
+  if (isDevelopmentMode) {
+    // Run the langserver wrapper script in the parent directory. This will re-compile the langserver
+    // every time the extension is started
+    goBin = context.asAbsolutePath(path.join("..", "bin", "langserver"));
+    cwd = context.asAbsolutePath("..");
+  } else {
+    // Run the langserver binary that the build script copies into the extension's bin directory.
+    goBin = context.asAbsolutePath(path.join("out", "langserver"));
+    cwd = context.asAbsolutePath(".");
+  }
 
   const options: Executable = {
     command: goBin,
     options: {
       cwd: cwd,
     },
+    transport: TransportKind.stdio,
   };
   // If the extension is launched in debug mode then the debug server options are used
   // Otherwise the run options are used
@@ -53,6 +63,11 @@ export function activate(context: ExtensionContext) {
     serverOptions,
     clientOptions
   );
+
+  const log = (message: string) => {
+    client.outputChannel.appendLine(`client: ${message}`);
+  }
+  log(`Starting ${goBin}`);
 
   // Start the client. This will also launch the server
   client.start();

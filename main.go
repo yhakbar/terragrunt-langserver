@@ -17,6 +17,7 @@ import (
 
 func main() {
 	port := flag.String("socket", "", "port to listen on")
+	stdio := flag.Bool("stdio", false, "use stdio transport")
 	logLevel := flag.String("log-level", "debug", "log level")
 	logRequests := flag.Bool("log-requests", false, "set to log request payloads")
 	flag.Parse()
@@ -47,7 +48,7 @@ func main() {
 		Logger:    func(text string) { slog.Log(nil, slog.Level(-5), text) },
 		RPCLog:    requestLogger,
 	}
-	if *port == "" {
+	if *stdio || *port == "" {
 		slog.Info("Starting server as stdio")
 		srv := jrpc2.NewServer(assigner, serverOpts)
 		srv.Start(channel.LSP(os.Stdin, os.Stdout))

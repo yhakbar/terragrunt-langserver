@@ -22,3 +22,6 @@ go.work
 
 # Hermit caches
 .hermit
+
+# VSCode extension package
+*.vsix

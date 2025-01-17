@@ -46,13 +46,14 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run compile && ./scripts/package.sh",
     "compile": "tsc -b",
     "watch": "tsc -b -w",
     "lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
     "test": "sh ./scripts/e2e.sh"
   },
   "dependencies": {
+    "@vscode/vsce": "^3.2.1",
     "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
