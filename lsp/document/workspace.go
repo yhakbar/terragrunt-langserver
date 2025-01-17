@@ -2,7 +2,6 @@ package document
 
 import (
 	"github.com/creachadair/jrpc2"
-	"github.com/gruntwork-io/terragrunt/config"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/mightyguava/hcl-langserver/lang/terragrunt"
 	"github.com/mightyguava/hcl-langserver/lsp/protocol"
@@ -16,8 +15,8 @@ import (
 type Document struct {
 	// AST contains the AST and index for the document
 	AST *terragrunt.IndexedAST
-	// Config contains the evaluated Terragrunt config
-	Config *config.TerragruntConfig
+	// TerragruntEval contains the evaluated Terragrunt config
+	TerragruntEval *terragrunt.EvaluatedData
 	// Diagnostics contains any errors from evaluating the config
 	Diagnostics hcl.Diagnostics
 }
@@ -62,10 +61,10 @@ func (w *Workspace) LoadDocumentBytes(fileUri string, contents []byte) (*Documen
 	if err != nil && !errors.As(err, &diagnostics) {
 		return nil, jrpc2.Errorf(jrpc2.InvalidParams, "error parsing file %s: %s", fileUri, err.Error())
 	}
-	var cfg *config.TerragruntConfig
+	var eval *terragrunt.EvaluatedData
 	// If parsing the AST failed, skip evaluation.
 	if diagnostics == nil {
-		cfg, err = terragrunt.Evaluate(uri.Path, contents)
+		eval, err = terragrunt.Evaluate(uri.Path, file.HCLFile, contents)
 		if err != nil {
 			if errors.As(err, &diagnostics) {
 				// continue
@@ -75,9 +74,9 @@ func (w *Workspace) LoadDocumentBytes(fileUri string, contents []byte) (*Documen
 		}
 	}
 	doc := &Document{
-		AST:         file,
-		Config:      cfg,
-		Diagnostics: diagnostics,
+		AST:            file,
+		TerragruntEval: eval,
+		Diagnostics:    diagnostics,
 	}
 
 	w.mu.Lock()

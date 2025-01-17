@@ -5,9 +5,11 @@ import (
 	"github.com/gruntwork-io/terragrunt/config"
 	"github.com/gruntwork-io/terragrunt/options"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/zclconf/go-cty/cty"
 	"os"
 	"reflect"
 	"runtime/debug"
@@ -170,9 +172,42 @@ func IsLocalBlock(node hclsyntax.Node) bool {
 	return ok && block.Type == "locals"
 }
 
+// IsIncludeBlock returns TRUE if the node is an HCL block of type "include".
+func IsIncludeBlock(node hclsyntax.Node) bool {
+	block, ok := node.(*hclsyntax.Block)
+	return ok && block.Type == "include"
+}
+
 func IsAttributeNode(node hclsyntax.Node) bool {
 	_, ok := node.(*hclsyntax.Attribute)
 	return ok
+}
+
+// IsInIncludePathExpr returns whether the node is part of an include block's path expression. If it is, returns
+// the name of the include block and TRUE, otherwise returns "" and FALSE.
+func IsInIncludePathExpr(inode *IndexedNode) (string, bool) {
+	attr := FindFirstParentMatch(inode, IsAttributeNode)
+	if attr == nil {
+		return "", false
+	}
+	local := FindFirstParentMatch(attr, IsIncludeBlock)
+	if local == nil {
+		return "", false
+	}
+	name := ""
+	if labels := local.Node.(*hclsyntax.Block).Labels; len(labels) > 0 {
+		name = labels[0]
+	}
+	return name, true
+}
+
+func FindFirstParentMatch(inode *IndexedNode, matcher func(node hclsyntax.Node) bool) *IndexedNode {
+	for cur := inode; cur != nil; cur = cur.Parent {
+		if matcher(cur.Node) {
+			return cur
+		}
+	}
+	return nil
 }
 
 var _ hclsyntax.Walker = &nodeIndexBuilder{}
@@ -189,17 +224,37 @@ func indexAST(ast *hcl.File) *IndexedAST {
 	}
 }
 
+type EvaluatedData struct {
+	Config   *config.TerragruntConfig
+	Locals   *cty.Value
+	Includes *config.TrackInclude
+}
+
 // Evaluate the terragrunt HCL file using Terragrunt's config library. This parses all referenced files and evaluates
 // them as well in context.
-func Evaluate(filePath string, contents []byte) (*config.TerragruntConfig, error) {
+func Evaluate(filePath string, file *hcl.File, contents []byte) (*EvaluatedData, error) {
 	contents, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
-	return config.ParseConfigString(string(contents), &options.TerragruntOptions{
+	opts := &options.TerragruntOptions{
 		TerragruntConfigPath:         filePath,
 		OriginalTerragruntConfigPath: filePath,
 		MaxFoldersToCheck:            options.DefaultMaxFoldersToCheck,
 		Logger:                       logrus.NewEntry(logrus.New()),
-	}, nil, filePath, nil)
+	}
+	parser := hclparse.NewParser()
+	locals, includes, err := config.DecodeBaseBlocks(opts, parser, file, filePath, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	conf, err := config.ParseConfigString(string(contents), opts, nil, filePath, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &EvaluatedData{
+		Config:   conf,
+		Locals:   locals,
+		Includes: includes,
+	}, nil
 }

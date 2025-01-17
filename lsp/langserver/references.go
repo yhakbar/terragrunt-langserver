@@ -32,7 +32,17 @@ func (r *Referencer) GoToDefinition(params protocol.TextDocumentPositionParams) 
 	if node == nil {
 		return nil, nil
 	}
-	slog.Info("Found node", slog.Any("node", node))
+
+	if includeName, ok := terragrunt.IsInIncludePathExpr(node); ok {
+		if include, ok := doc.TerragruntEval.Includes.CurrentMap[includeName]; ok {
+			return []protocol.Location{
+				{
+					URI: protocol.URIFromPath(include.Path),
+				},
+			}, nil
+		}
+	}
+
 	scopeTraversalNode, ok := node.Node.(*hclsyntax.ScopeTraversalExpr)
 	if !ok {
 		slog.Info("Not scope traversal", "node", node.GoString())
