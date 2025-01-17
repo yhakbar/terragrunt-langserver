@@ -1,6 +1,6 @@
 module github.com/mightyguava/hcl-langserver
 
-go 1.19
+go 1.23
 
 require github.com/creachadair/jrpc2 v1.1.1
 

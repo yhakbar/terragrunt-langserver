@@ -139,10 +139,3 @@ func FromHCLDiagnostics(diags hcl.Diagnostics) []protocol.Diagnostic {
 	}
 	return pdiags
 }
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
