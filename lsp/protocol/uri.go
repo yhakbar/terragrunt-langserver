@@ -16,7 +16,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/mightyguava/hcl-langserver/lsp/protocol/pathutil"
+	"github.com/mightyguava/terragrunt-langserver/lsp/protocol/pathutil"
 )
 
 // A DocumentURI is the URI of a client editor document.

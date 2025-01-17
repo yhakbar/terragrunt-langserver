@@ -2,8 +2,8 @@ package langserver
 
 import (
 	"context"
-	"github.com/mightyguava/hcl-langserver/lsp/document"
-	"github.com/mightyguava/hcl-langserver/lsp/protocol"
+	"github.com/mightyguava/terragrunt-langserver/lsp/document"
+	"github.com/mightyguava/terragrunt-langserver/lsp/protocol"
 	"reflect"
 )
 

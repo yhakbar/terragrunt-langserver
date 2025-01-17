@@ -1,4 +1,4 @@
-module github.com/mightyguava/hcl-langserver
+module github.com/mightyguava/terragrunt-langserver
 
 go 1.23
 

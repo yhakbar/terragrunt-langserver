@@ -3,8 +3,8 @@ package langserver
 import (
 	"context"
 	"github.com/creachadair/jrpc2"
-	"github.com/mightyguava/hcl-langserver/lsp/document"
-	"github.com/mightyguava/hcl-langserver/lsp/protocol"
+	"github.com/mightyguava/terragrunt-langserver/lsp/document"
+	"github.com/mightyguava/terragrunt-langserver/lsp/protocol"
 )
 
 // Server implements the LSP protocol's server interface.
