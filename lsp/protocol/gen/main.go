@@ -37,7 +37,7 @@ func main() {
 		if f == "tsserver.go" || f == "tsclient.go" {
 			data = transformJrpc(data)
 		} else if f == "uri.go" {
-			data = []byte(strings.ReplaceAll(string(data), "golang.org/x/tools/gopls/internal/util/pathutil", "github.com/mightyguava/hcl-langserver/lsp/protocol/pathutil"))
+			data = []byte(strings.ReplaceAll(string(data), "golang.org/x/tools/gopls/internal/util/pathutil", "github.com/mightyguava/terragrunt-langserver/lsp/protocol/pathutil"))
 		}
 		if err != nil {
 			panic(err)
