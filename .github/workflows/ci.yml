@@ -1,0 +1,60 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Go
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  go:
+    name: Go Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Activate Hermit
+        uses: cashapp/activate-hermit@v1
+        with:
+          cache: "true"
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Test
+        run: go test -v ./...
+
+  node:
+    name: Build Extension
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./vscode-extension
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Activate Hermit
+        uses: cashapp/activate-hermit@v1
+        with:
+          cache: "true"
+
+      - name: Install deps
+        run: npm install
+
+      - name: Package
+        run: |
+          GOARCH=amd64 GOOS=darwin npx vsce package --target darwin-amd64
+          GOARCH=arm64 GOOS=darwin npx vsce package --target darwin-arm64
+          GOARCH=amd64 GOOS=linux npx vsce package --target linux-x64
+          GOARCH=arm64 GOOS=linux npx vsce package --target linux-arm64
+
+      - name: Upload extension artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Extension Packages
+          path: "*.vsix"
