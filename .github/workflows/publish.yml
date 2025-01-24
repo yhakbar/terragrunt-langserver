@@ -1,0 +1,30 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    name: Publish Extension
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./vscode-extension
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Activate Hermit
+        uses: cashapp/activate-hermit@v1
+
+      - name: Install deps
+        run: npm install
+
+      - name: Package
+        run: |
+          GOARCH=amd64 GOOS=darwin npx vsce publish --pat ${{ secrets.VS_MARKETPLACE_TOKEN }} --target darwin-x64
+          GOARCH=arm64 GOOS=darwin npx vsce publish --pat ${{ secrets.VS_MARKETPLACE_TOKEN }} --target darwin-arm64
+          GOARCH=amd64 GOOS=linux npx vsce publish --pat ${{ secrets.VS_MARKETPLACE_TOKEN }} --target linux-x64
+          GOARCH=arm64 GOOS=linux npx vsce publish --pat ${{ secrets.VS_MARKETPLACE_TOKEN }} --target linux-arm64

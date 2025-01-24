@@ -48,7 +48,7 @@ jobs:
 
       - name: Package
         run: |
-          GOARCH=amd64 GOOS=darwin npx vsce package --target darwin-amd64
+          GOARCH=amd64 GOOS=darwin npx vsce package --target darwin-x64
           GOARCH=arm64 GOOS=darwin npx vsce package --target darwin-arm64
           GOARCH=amd64 GOOS=linux npx vsce package --target linux-x64
           GOARCH=arm64 GOOS=linux npx vsce package --target linux-arm64
