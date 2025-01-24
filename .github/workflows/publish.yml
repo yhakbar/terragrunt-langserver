@@ -22,7 +22,7 @@ jobs:
       - name: Install deps
         run: npm install
 
-      - name: Package
+      - name: Publish
         run: |
           GOARCH=amd64 GOOS=darwin npx vsce publish --pat ${{ secrets.VS_MARKETPLACE_TOKEN }} --target darwin-x64
           GOARCH=arm64 GOOS=darwin npx vsce publish --pat ${{ secrets.VS_MARKETPLACE_TOKEN }} --target darwin-arm64
