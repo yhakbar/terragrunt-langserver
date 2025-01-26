@@ -6,8 +6,10 @@ This is a Terragrunt Language server written in Go and a VS Code extension that 
 
 For now, it's fairly barebones in features
 
+* Display HCL syntax errors
+* Display Terragrunt file errors
 * Cmd+Click to `local` variable declarations
-* Cmd+Click to navigate to includes (evaluates Terragrunt functions like `find_in_parent_directories)
+* Cmd+Click to navigate to includes (evaluates Terragrunt functions like `find_in_parent_directories()`)
 
 ## Usage
 
