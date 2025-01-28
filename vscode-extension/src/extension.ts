@@ -44,7 +44,10 @@ export function activate(context: ExtensionContext) {
   // Otherwise the run options are used
   const serverOptions: ServerOptions = {
     run: options,
-    debug: options,
+    debug: {
+      args: ["--debug"],
+      ...options,
+    },
   };
 
   // Options to control the language client

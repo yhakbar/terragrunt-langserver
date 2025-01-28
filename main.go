@@ -20,6 +20,7 @@ func main() {
 	stdio := flag.Bool("stdio", false, "use stdio transport")
 	logLevel := flag.String("log-level", "debug", "log level")
 	logRequests := flag.Bool("log-requests", false, "set to log request payloads")
+	debug := flag.Bool("debug", false, "set to enable debug hover hints")
 	flag.Parse()
 	var level slog.Level
 	if err := level.UnmarshalText([]byte(*logLevel)); err != nil {
@@ -33,7 +34,7 @@ func main() {
 	// Set up a service with some trivial methods (handlers defined below).
 	workspace := document.NewWorkspace()
 	svc := &langserver.Server{
-		HoverHandler: langserver.NewHoverHandler(workspace),
+		HoverHandler: langserver.NewHoverHandler(workspace, *debug),
 		Workspace:    workspace,
 		Referencer:   langserver.NewReferencer(workspace),
 	}
