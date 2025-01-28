@@ -17,7 +17,7 @@
     "vscode": "^1.82.0"
   },
   "activationEvents": [
-    "onLanguage:hcl"
+    "workspaceContains:**/terragrunt.hcl"
   ],
   "main": "./out/extension",
   "contributes": {
@@ -42,7 +42,15 @@
           "default": "messages",
           "description": "Traces the communication between VS Code and the language server."
         }
-      }
+      },
+      "languages": [
+        {
+          "id": "terragrunt",
+          "filenames": [
+            "terragrunt.hcl"
+          ]
+        }
+      ]
     }
   },
   "scripts": {

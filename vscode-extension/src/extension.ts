@@ -20,7 +20,8 @@ let client: LanguageClient;
 export function activate(context: ExtensionContext) {
   let goBin: string, cwd: string;
 
-  const isDevelopmentMode = context.extensionMode === vscode.ExtensionMode.Development;
+  const isDevelopmentMode =
+    context.extensionMode === vscode.ExtensionMode.Development;
   if (isDevelopmentMode) {
     // Run the langserver wrapper script in the parent directory. This will re-compile the langserver
     // every time the extension is started
@@ -49,7 +50,7 @@ export function activate(context: ExtensionContext) {
   // Options to control the language client
   const clientOptions: LanguageClientOptions = {
     // Register the server for hcl documents
-    documentSelector: [{ scheme: "file", language: "hcl" }],
+    documentSelector: [{ scheme: "file", pattern: "**/*.hcl" }],
     synchronize: {
       // Notify the server about file changes to '.clientrc files contained in the workspace
       fileEvents: workspace.createFileSystemWatcher("**/.clientrc"),
@@ -66,7 +67,7 @@ export function activate(context: ExtensionContext) {
 
   const log = (message: string) => {
     client.outputChannel.appendLine(`client: ${message}`);
-  }
+  };
   log(`Starting ${goBin}`);
 
   // Start the client. This will also launch the server
