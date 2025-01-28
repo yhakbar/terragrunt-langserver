@@ -26,7 +26,7 @@ func ParseHCLFile(fileName string, contents []byte) (file *IndexedAST, err error
 
 	hclFile, diags := hclsyntax.ParseConfig(contents, fileName, hcl.Pos{Byte: 0, Line: 1, Column: 1})
 	if diags != nil && diags.HasErrors() {
-		return nil, diags
+		return indexAST(hclFile), diags
 	}
 
 	return indexAST(hclFile), nil
