@@ -16,48 +16,26 @@ type Server struct {
 	client protocol.Client
 }
 
+// This implementation assertion doesn't actually help, as far as I can tell.
+// We're confirming that the server implements gopls' protocol.Server interface.
+//
+// That requires leaving behind a bunch of dead code for the unimplemented methods.
+// It makes the code harder to read and understand.
 var _ protocol.Server = &Server{}
 
 // Initialize implements the initialize request. It is the first request from the LSP client to the server.
 // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#initialize
 func (s *Server) Initialize(ctx context.Context, initialize *protocol.ParamInitialize) (*protocol.InitializeResult, error) {
 	s.client = protocol.ClientCaller(protocol.NewSender(jrpc2.ServerFromContext(ctx)))
+
 	return &protocol.InitializeResult{
-		ServerInfo: &protocol.ServerInfo{Name: "hello"},
+		ServerInfo: &protocol.ServerInfo{Name: "terragrunt-langserver"},
 		Capabilities: protocol.ServerCapabilities{
 			HoverProvider: &protocol.Or_ServerCapabilities_hoverProvider{
 				Value: true,
 			},
-			CallHierarchyProvider:            nil,
-			CodeActionProvider:               nil,
-			CodeLensProvider:                 nil,
-			ColorProvider:                    nil,
-			CompletionProvider:               nil,
-			DeclarationProvider:              &protocol.Or_ServerCapabilities_declarationProvider{Value: true},
-			DefinitionProvider:               &protocol.Or_ServerCapabilities_definitionProvider{Value: true},
-			DiagnosticProvider:               nil,
-			DocumentFormattingProvider:       nil,
-			DocumentHighlightProvider:        nil,
-			DocumentLinkProvider:             nil,
-			DocumentOnTypeFormattingProvider: nil,
-			DocumentRangeFormattingProvider:  nil,
-			DocumentSymbolProvider:           nil,
-			ExecuteCommandProvider:           nil,
-			Experimental:                     nil,
-			FoldingRangeProvider:             nil,
-			ImplementationProvider:           nil,
-			InlayHintProvider:                nil,
-			InlineCompletionProvider:         nil,
-			InlineValueProvider:              nil,
-			LinkedEditingRangeProvider:       nil,
-			MonikerProvider:                  nil,
-			NotebookDocumentSync:             nil,
-			PositionEncoding:                 nil,
-			ReferencesProvider:               nil,
-			RenameProvider:                   nil,
-			SelectionRangeProvider:           nil,
-			SemanticTokensProvider:           nil,
-			SignatureHelpProvider:            nil,
+			DeclarationProvider: &protocol.Or_ServerCapabilities_declarationProvider{Value: true},
+			DefinitionProvider:  &protocol.Or_ServerCapabilities_definitionProvider{Value: true},
 			TextDocumentSync: &protocol.TextDocumentSyncOptions{
 				OpenClose:         true,
 				Change:            protocol.None,
@@ -65,10 +43,6 @@ func (s *Server) Initialize(ctx context.Context, initialize *protocol.ParamIniti
 				WillSaveWaitUntil: false,
 				Save:              &protocol.SaveOptions{},
 			},
-			TypeDefinitionProvider:  nil,
-			TypeHierarchyProvider:   nil,
-			Workspace:               nil,
-			WorkspaceSymbolProvider: nil,
 		},
 	}, nil
 }
@@ -83,7 +57,7 @@ func (s *Server) Progress(ctx context.Context, params *protocol.ProgressParams) 
 }
 
 func (s *Server) SetTrace(ctx context.Context, params *protocol.SetTraceParams) error {
-	// TODO actually set the trace level
+	// TODO: actually set the trace level
 	//    https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#traceValue
 	return nil
 }
@@ -178,6 +152,7 @@ func (s *Server) Declaration(ctx context.Context, params *protocol.DeclarationPa
 	if err != nil {
 		return nil, err
 	}
+
 	return &protocol.Or_textDocument_declaration{Value: result}, nil
 }
 
@@ -186,6 +161,7 @@ func (s *Server) Definition(ctx context.Context, params *protocol.DefinitionPara
 	if err != nil {
 		return nil, err
 	}
+
 	return result, nil
 }
 
@@ -195,7 +171,7 @@ func (s *Server) Diagnostic(ctx context.Context, params *protocol.DocumentDiagno
 }
 
 func (s *Server) DidChange(ctx context.Context, params *protocol.DidChangeTextDocumentParams) error {
-	//TODO implement me
+	// TODO: implement me
 	return nil
 }
 
@@ -209,11 +185,13 @@ func (s *Server) DidOpen(ctx context.Context, params *protocol.DidOpenTextDocume
 	if err != nil {
 		return err
 	}
+
 	_ = s.client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
 		URI:         params.TextDocument.URI,
 		Version:     params.TextDocument.Version,
 		Diagnostics: document.FromHCLDiagnostics(doc.Diagnostics),
 	})
+
 	return err
 }
 
@@ -222,10 +200,12 @@ func (s *Server) DidSave(ctx context.Context, params *protocol.DidSaveTextDocume
 	if err != nil {
 		return err
 	}
+
 	_ = s.client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
 		URI:         params.TextDocument.URI,
 		Diagnostics: document.FromHCLDiagnostics(doc.Diagnostics),
 	})
+
 	return err
 }
 

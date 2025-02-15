@@ -24,14 +24,18 @@ func (h *HoverHandler) Handle(ctx context.Context, params *protocol.HoverParams)
 	if err != nil {
 		return nil, err
 	}
+
 	hoverPos := document.ToHclPos(params.Position)
+
 	closest := doc.AST.FindNodeAt(hoverPos)
 	if closest == nil {
 		return nil, nil
 	}
+
 	if !h.debug {
 		return nil, nil
 	}
+
 	return &protocol.Hover{
 		Contents: protocol.MarkupContent{
 			Kind:  protocol.PlainText,

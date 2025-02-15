@@ -40,7 +40,7 @@ The language server is built in Go and uses Terragrunt as a library to support c
 framework is  from `gopls` (the Go language server). When a new `terragrunt.hcl`
 is loaded, the language server
 
-* Uses the [HCL v2 parser](https://github.com/hashicorp/hcl) to parse the file into an AST and indexs the AST by file location
+* Uses the [HCL v2 parser](https://github.com/hashicorp/hcl) to parse the file into an AST and indexes the AST by file location
 * Uses [`terragrunt/config`](https://github.com/gruntwork-io/terragrunt/tree/main/config) as a library to evaluate the Terragrunt file
 * Introspections are then performed on the loaded data
 

@@ -10,7 +10,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/zclconf/go-cty/cty"
-	"os"
 	"reflect"
 	"runtime/debug"
 )
@@ -64,6 +63,7 @@ func (d *IndexedAST) FindNodeAt(pos hcl.Pos) *IndexedNode {
 	if !ok {
 		return nil
 	}
+
 	var closest *IndexedNode
 	// First try finding a matching node on the same line
 	for _, node := range nodes {
@@ -71,6 +71,7 @@ func (d *IndexedAST) FindNodeAt(pos hcl.Pos) *IndexedNode {
 			closest = node
 		}
 	}
+
 	if closest == nil {
 		// Iterate backwards by line
 		for i := pos.Line - 1; i >= 1; i-- {
@@ -78,13 +79,17 @@ func (d *IndexedAST) FindNodeAt(pos hcl.Pos) *IndexedNode {
 			if !ok || len(nodes) == 0 {
 				continue
 			}
+
 			closest = nodes[len(nodes)-1]
+
 			break
 		}
 	}
+
 	if closest == nil {
 		return nil
 	}
+
 	// Navigate up the AST to find the first node that contains the position.
 	node := closest
 	for node != nil {
@@ -92,8 +97,10 @@ func (d *IndexedAST) FindNodeAt(pos hcl.Pos) *IndexedNode {
 		if end.Line > pos.Line || end.Line == pos.Line && end.Column > pos.Column {
 			return node
 		}
+
 		node = node.Parent
 	}
+
 	return nil
 }
 
@@ -132,18 +139,28 @@ func (w *nodeIndexBuilder) Enter(node hclsyntax.Node) hcl.Diagnostics {
 	if len(w.stack) > 0 {
 		parent = w.stack[len(w.stack)-1]
 	}
+
 	line := node.Range().Start.Line
 	inode := &IndexedNode{
 		Parent: parent,
 		Node:   node,
 	}
+
 	w.stack = append(w.stack, inode)
 	w.index[line] = append(w.index[line], inode)
+
 	if IsLocalAttribute(inode) {
 		w.locals.Add(inode)
-	} else if block, ok := node.(*hclsyntax.Block); ok && block.Type == "include" && len(block.Labels) > 0 {
-		w.includes.Add(inode)
+
+		return nil
 	}
+
+	if block, ok := node.(*hclsyntax.Block); ok && block.Type == "include" && len(block.Labels) > 0 {
+		w.includes.Add(inode)
+
+		return nil
+	}
+
 	return nil
 }
 
@@ -157,12 +174,15 @@ func IsLocalAttribute(node *IndexedNode) bool {
 	if node.Parent == nil || node.Parent.Parent == nil || node.Parent.Parent.Parent == nil {
 		return false
 	}
+
 	if _, ok := node.Parent.Node.(hclsyntax.Attributes); !ok {
 		return false
 	}
+
 	if _, ok := node.Parent.Parent.Node.(*hclsyntax.Body); !ok {
 		return false
 	}
+
 	return IsLocalBlock(node.Parent.Parent.Parent.Node)
 }
 
@@ -190,14 +210,17 @@ func IsInIncludePathExpr(inode *IndexedNode) (string, bool) {
 	if attr == nil {
 		return "", false
 	}
+
 	local := FindFirstParentMatch(attr, IsIncludeBlock)
 	if local == nil {
 		return "", false
 	}
+
 	name := ""
 	if labels := local.Node.(*hclsyntax.Block).Labels; len(labels) > 0 {
 		name = labels[0]
 	}
+
 	return name, true
 }
 
@@ -207,6 +230,7 @@ func FindFirstParentMatch(inode *IndexedNode, matcher func(node hclsyntax.Node) 
 			return cur
 		}
 	}
+
 	return nil
 }
 
@@ -216,6 +240,7 @@ func indexAST(ast *hcl.File) *IndexedAST {
 	body := ast.Body.(*hclsyntax.Body)
 	builder := newNodeIndexBuilider()
 	_ = hclsyntax.Walk(body, builder)
+
 	return &IndexedAST{
 		Index:    builder.index,
 		Locals:   builder.locals,
@@ -233,25 +258,28 @@ type EvaluatedData struct {
 // Evaluate the terragrunt HCL file using Terragrunt's config library. This parses all referenced files and evaluates
 // them as well in context.
 func Evaluate(filePath string, file *hcl.File, contents []byte) (*EvaluatedData, error) {
-	contents, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
+	// FIXME: Use NewTerragruntOptions.
 	opts := &options.TerragruntOptions{
 		TerragruntConfigPath:         filePath,
 		OriginalTerragruntConfigPath: filePath,
 		MaxFoldersToCheck:            options.DefaultMaxFoldersToCheck,
 		Logger:                       logrus.NewEntry(logrus.New()),
 	}
+
 	parser := hclparse.NewParser()
+
+	// NOTE: Why do this? We already have the locals and includes from parsing configs.
+	// Is the idea that config parsing might fail?
 	locals, includes, err := config.DecodeBaseBlocks(opts, parser, file, filePath, nil, nil)
 	if err != nil {
 		return nil, err
 	}
+
 	conf, err := config.ParseConfigString(string(contents), opts, nil, filePath, nil)
 	if err != nil {
 		return nil, err
 	}
+
 	return &EvaluatedData{
 		Config:   conf,
 		Locals:   locals,

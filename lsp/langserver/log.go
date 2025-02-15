@@ -20,15 +20,17 @@ func (r RequestLogger) LogRequest(ctx context.Context, req *jrpc2.Request) {
 }
 
 func (r RequestLogger) LogResponse(ctx context.Context, rsp *jrpc2.Response) {
-	if rsp.Error() != nil {
-		slog.Debug("Response",
-			slog.String("id", rsp.ID()),
-			slog.String("error", rsp.Error().Error()),
-		)
-	} else {
+	if rsp.Error() == nil {
 		slog.Debug("Response",
 			slog.String("id", rsp.ID()),
 			slog.String("result", rsp.ResultString()),
 		)
+
+		return
 	}
+
+	slog.Debug("Response",
+		slog.String("id", rsp.ID()),
+		slog.String("error", rsp.Error().Error()),
+	)
 }

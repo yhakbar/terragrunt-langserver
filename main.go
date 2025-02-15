@@ -21,15 +21,19 @@ func main() {
 	logLevel := flag.String("log-level", "debug", "log level")
 	logRequests := flag.Bool("log-requests", false, "set to log request payloads")
 	debug := flag.Bool("debug", false, "set to enable debug hover hints")
+
 	flag.Parse()
+
 	var level slog.Level
 	if err := level.UnmarshalText([]byte(*logLevel)); err != nil {
 		log.Fatalf("invalid level %s", *logLevel)
 	}
+
 	log.SetFlags(log.Lshortfile)
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: level,
 	})))
+
 	// -------------------------------------------------------------------------
 	// Set up a service with some trivial methods (handlers defined below).
 	workspace := document.NewWorkspace()

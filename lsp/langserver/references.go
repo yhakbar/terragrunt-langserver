@@ -27,7 +27,9 @@ func (r *Referencer) GoToDefinition(params protocol.TextDocumentPositionParams) 
 	if err != nil {
 		return nil, err
 	}
+
 	pos := document.ToHclPos(params.Position)
+
 	node := doc.AST.FindNodeAt(pos)
 	if node == nil {
 		return nil, nil
@@ -48,11 +50,16 @@ func (r *Referencer) GoToDefinition(params protocol.TextDocumentPositionParams) 
 		slog.Info("Not scope traversal", "node", node.GoString())
 		return nil, nil
 	}
+
 	slog.Info("Locals", "v", doc.AST.Locals)
+
 	traversal := scopeTraversalNode.Traversal
+
 	var scope terragrunt.Scope
+
 	for _, t := range traversal {
 		slog.Info("Traversing", "type", reflect.TypeOf(t).String())
+
 		switch tv := t.(type) {
 		case hcl.TraverseRoot:
 			rootName := t.(hcl.TraverseRoot).Name
@@ -74,5 +81,6 @@ func (r *Referencer) GoToDefinition(params protocol.TextDocumentPositionParams) 
 			}
 		}
 	}
+
 	return nil, nil
 }
